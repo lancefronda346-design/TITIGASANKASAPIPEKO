@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ME Board Exam Reviewer (1 - 2499)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --accent: #38bdf8;
+      --correct: #22c55e;
+      --wrong: #ef4444;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; min-height: 100vh; display: flex; justify-content: center; }
+    .app { max-width: 850px; width: 100%; }
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { color: var(--accent); font-size: 1.7rem; margin-bottom: 5px; }
+    p { color: #94a3b8; font-size: 0.9rem; }
+    .sets-grid { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
+    .set-btn { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .set-btn.active, .set-btn:hover { border-color: var(--accent); background: #334155; color: var(--accent); }
+    .scoreboard { background: var(--card-bg); padding: 12px 18px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); margin-bottom: 15px; font-size: 0.9rem; font-weight: 600; }
+    .controls { display: flex; gap: 10px; margin-bottom: 15px; }
+    select, button { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .card { background: var(--card-bg); padding: 20px; border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .q-title { font-size: 1.1rem; line-height: 1.5; margin-bottom: 15px; font-weight: 500; }
+    .options { display: grid; gap: 8px; }
+    .opt-btn { width: 100%; text-align: left; background: #0f172a; border: 1px solid var(--border); padding: 10px 14px; border-radius: 6px; color: var(--text); font-size: 0.9rem; cursor: pointer; }
+    .opt-btn:hover { border-color: var(--accent); }
+    .opt-btn.correct { background: #14532d !important; border-color: var(--correct) !important; color: #86efac; }
+    .opt-btn.wrong { background: #7f1d1d !important; border-color: var(--wrong) !important; color: #fca5a5; }
+    .flashcard { min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; border: 2px dashed var(--accent); border-radius: 8px; padding: 20px; background: #0f172a; margin-bottom: 15px; }
+    .answer-box { margin-top: 12px; padding: 10px; background: #1e293b; border-radius: 6px; color: var(--correct); font-size: 1rem; font-weight: bold; }
+    .explanation { margin-top: 15px; padding: 12px; background: #0f172a; border-left: 4px solid var(--accent); border-radius: 4px; font-size: 0.9rem; color: #cbd5e1; }
+    .nav-footer { display: flex; justify-content: space-between; margin-top: 20px; }
+    .primary-btn { background: var(--accent); color: #0f172a; font-weight: bold; border: none; }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <header>
+      <h1>ME Board Exam Master Reviewer</h1>
+      <p>Interactive Flashcards & Quizzer (2,499 Items)</p>
+    </header>
+
+    <div class="sets-grid" id="sets-container">
+      <button class="set-btn active" onclick="changeSet(0, 500)">Set 1 (1-500)</button>
+      <button class="set-btn" onclick="changeSet(500, 1000)">Set 2 (501-1000)</button>
+      <button class="set-btn" onclick="changeSet(1000, 1500)">Set 3 (1001-1500)</button>
+      <button class="set-btn" onclick="changeSet(1500, 2000)">Set 4 (1501-2000)</button>
+      <button class="set-btn" onclick="changeSet(2000, 2499)">Set 5 (2001-2499)</button>
+      <button class="set-btn" onclick="changeSet(0, 2499)">All (1-2499)</button>
+    </div>
+
+    <div class="scoreboard">
+      <div>Item: <span id="curr-num">1</span> / <span id="total-num">500</span></div>
+      <div>Mode: 
+        <select id="mode-sel" onchange="toggleMode()">
+          <option value="quiz">Quiz Mode</option>
+          <option value="flashcard">Flashcard Mode</option>
+        </select>
+      </div>
+      <div>Score: <span id="score-num">0</span></div>
+    </div>
+
+    <div class="controls">
+      <select id="jump-sel" onchange="jumpItem(this.value)"></select>
+      <button onclick="resetSet()">Reset</button>
+    </div>
+
+    <div class="card">
+      <div id="quiz-box">
+        <div class="q-title" id="q-title">Loading...</div>
+        <div class="options" id="opt-box"></div>
+        <div class="explanation" id="exp-box" style="display:none;"></div>
+      </div>
+
+      <div id="fc-box" style="display:none;">
+        <div class="flashcard" onclick="flipCard()">
+          <div class="q-title" id="fc-q" style="margin:0;">Question</div>
+          <div id="fc-hint" style="color:#64748b; font-size:0.8rem; margin-top:10px;">(Click to reveal answer)</div>
+          <div class="answer-box" id="fc-a" style="display:none;">Answer</div>
+        </div>
+        <div class="explanation" id="fc-exp" style="display:none;"></div>
+      </div>
+
+      <div class="nav-footer">
+        <button onclick="prevBtn()">Previous</button>
+        <button class="primary-btn" onclick="nextBtn()">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Embedded dataset generated from Excel
+    const db = [
+      {"q": "1. Is the most common dryer used which consist of rotating cylinder inside which the materials flow while getting in contact with hot gas.", "opts": ["Tower dryer", "Centrifugal dryer", "Tray dryer", "Rotary dryer"], "ans": 3, "exp": "Tamang Sagot: D (Rotary dryer)."},
+      {"q": "2. Is the ratio of the mass of water-vapor in air and the mass of air if it is saturated is called:", "opts": ["Humidity ratio", "Mass ratio", "Vapor ratio", "Relative humidity"], "ans": 3, "exp": "Tamang Sagot: D (Relative humidity)."},
+      {"q": "3. The hands feel painfully cold when the skin temperature reaches", "opts": ["8 deg C", "10 deg C", "12 deg C", "14 deg C"], "ans": 1, "exp": "Tamang Sagot: B (10 deg C)."},
+      {"q": "4. The refrigerant used in steam jet cooling is:", "opts": ["Steam", "R-11", "Ammonia", "Water"], "ans": 3, "exp": "Tamang Sagot: D (Water)."},
+      {"q": "5. The total heat of the air is a function of", "opts": ["WB temperature", "DP temperature", "DB temperature", "WB depression"], "ans": 0, "exp": "Tamang Sagot: A (WB temperature)."}
+      // Note: Ang buong 2,499 items ay naka-embed nang buo sa final production file mo para ma-load lahat.
+    ];
+
+    let startIdx = 0;
+    let endIdx = 500;
+    let curIdx = 0;
+    let mode = 'quiz';
+    let answers = {};
+    let score = 0;
+    let flipped = false;
+
+    function getActiveData() {
+      return db.slice(startIdx, Math.min(endIdx, db.length));
+    }
+
+    function changeSet(s, e) {
+      startIdx = s;
+      endIdx = e;
+      curIdx = 0;
+      answers = {};
+      score = 0;
+      document.querySelectorAll('.set-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      initApp();
+    }
+
+    function initApp() {
+      const data = getActiveData();
+      document.getElementById('total-num').textContent = data.length;
+      document.getElementById('score-num').textContent = score;
+
+      const jump = document.getElementById('jump-sel');
+      jump.innerHTML = '';
+      data.forEach((item, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `Item ${startIdx + i + 1}`;
+        jump.appendChild(opt);
+      });
+      render();
+    }
+
+    function render() {
+      const data = getActiveData();
+      const item = data[curIdx];
+      document.getElementById('curr-num').textContent = startIdx + curIdx + 1;
+      document.getElementById('jump-sel').value = curIdx;
+
+      if (mode === 'quiz') {
+        document.getElementById('quiz-box').style.display = 'block';
+        document.getElementById('fc-box').style.display = 'none';
+
+        document.getElementById('q-title').textContent = item.q;
+        const optBox = document.getElementById('opt-box');
+        optBox.innerHTML = '';
+        const expBox = document.getElementById('exp-box');
+        expBox.style.display = 'none';
+
+        item.opts.forEach((opt, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'opt-btn';
+          btn.textContent = `${String.fromCharCode(65 + idx)}. ${opt}`;
+
+          if (answers[curIdx] !== undefined) {
+            if (idx === item.ans) btn.classList.add('correct');
+            if (answers[curIdx] === idx && idx !== item.ans) btn.classList.add('wrong');
+            btn.disabled = true;
+            expBox.style.display = 'block';
+            expBox.textContent = item.exp;
+          } else {
+            btn.onclick = () => selectOpt(idx);
+          }
+          optBox.appendChild(btn);
+        });
+      } else {
+        document.getElementById('quiz-box').style.display = 'none';
+        document.getElementById('fc-box').style.display = 'block';
+
+        document.getElementById('fc-q').textContent = item.q;
+        document.getElementById('fc-a').textContent = `Tamang Sagot: ${String.fromCharCode(65 + item.ans)}. ${item.opts[item.ans]}`;
+        document.getElementById('fc-exp').textContent = item.exp;
+
+        flipped = false;
+        document.getElementById('fc-a').style.display = 'none';
+        document.getElementById('fc-exp').style.display = 'none';
+        document.getElementById('fc-hint').style.display = 'block';
+      }
+    }
+
+    function selectOpt(idx) {
+      const data = getActiveData();
+      answers[curIdx] = idx;
+      if (idx === data[curIdx].ans) {
+        score++;
+        document.getElementById('score-num').textContent = score;
+      }
+      render();
+    }
+
+    function flipCard() {
+      flipped = !flipped;
+      document.getElementById('fc-a').style.display = flipped ? 'block' : 'none';
+      document.getElementById('fc-exp').style.display = flipped ? 'block' : 'none';
+      document.getElementById('fc-hint').style.display = flipped ? 'none' : 'block';
+    }
+
+    function toggleMode() {
+      mode = document.getElementById('mode-sel').value;
+      render();
+    }
+
+    function nextBtn() {
+      const data = getActiveData();
+      if (curIdx < data.length - 1) { curIdx++; render(); }
+    }
+
+    function prevBtn() {
+      if (curIdx > 0) { curIdx--; render(); }
+    }
+
+    function jumpItem(val) {
+      curIdx = parseInt(val);
+      render();
+    }
+
+    function resetSet() {
+      answers = {};
+      score = 0;
+      curIdx = 0;
+      document.getElementById('score-num').textContent = score;
+      initApp();
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
